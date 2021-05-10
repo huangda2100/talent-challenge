@@ -4,6 +4,7 @@ go 1.15
 
 require (
 	github.com/BurntSushi/toml v0.3.1
+	github.com/cockroachdb/pebble v0.0.0-20210505210910-10e817849f25
 	github.com/gin-gonic/gin v1.6.3
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect

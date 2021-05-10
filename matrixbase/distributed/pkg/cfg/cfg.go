@@ -19,8 +19,11 @@ type APICfg struct {
 
 // StoreCfg store cfg
 type StoreCfg struct {
-	Memory   bool   `toml:"memory"`
-	DataPath string `toml:"dataPath"`
+	Memory    bool   `toml:"memory"`
+	DataPath  string `toml:"dataPath"`
+	ClusterIp string
+	Join      bool
+	Id        int
 }
 
 // MustParseCfg parse cfg, exit if has any error

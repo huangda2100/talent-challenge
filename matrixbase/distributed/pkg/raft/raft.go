@@ -3,7 +3,6 @@ package raft
 import (
 	"context"
 	"fmt"
-	"github.com/matrixorigin/talent-challenge/matrixbase/distributed/pkg/store/pebble"
 	"go.etcd.io/etcd/pkg/v3/fileutil"
 	"go.etcd.io/etcd/pkg/v3/types"
 	"go.etcd.io/etcd/raft/v3"
@@ -33,7 +32,7 @@ type raftNode struct {
 	snapshotIndex    uint64
 	appliedIndex     uint64
 	node             raft.Node
-	raftStorage      *pebble.PebbleStorage
+	raftStorage      *raft.MemoryStorage
 	wal              *wal.WAL
 	snapshotter      *snap.Snapshotter
 	snapshotterReady chan *snap.Snapshotter // signals when snapshotter is ready
@@ -55,7 +54,7 @@ type raftNode struct {
 
 var defaultSnapshotCount uint64 = 10000
 
-func newRaftNode(id int, peers []string, join bool, proposeC <-chan string,
+func NewRaftNode(id int, peers []string, join bool, proposeC <-chan string,
 	confChangeC <-chan raftpb.ConfChange, getSnapshot func() ([]byte, error)) (<-chan *string, <-chan error, <-chan *snap.Snapshotter) {
 
 	commitC := make(chan *string)
@@ -187,7 +186,7 @@ func (rn *raftNode) replayWAL() *wal.WAL {
 		log.Fatalf("matrixbase: failed to read WAL (%v)", err)
 	}
 
-	rn.raftStorage = pebble.NewPebbleStorage() // why don't do this on newRaftNode
+	rn.raftStorage = raft.NewMemoryStorage() // why don't do this on newRaftNode?
 	if snapshot != nil {
 		rn.raftStorage.ApplySnapshot(*snapshot)
 	}
@@ -206,19 +205,19 @@ func (rn *raftNode) replayWAL() *wal.WAL {
 func (rn *raftNode) serveRaft() {
 	urlAddress, err := url.Parse(rn.peers[rn.id - 1])
 	if err != nil {
-		log.Fatalf("raftexample: Failed parsing URL (%v)", err)
+		log.Fatalf("matrixbase: Failed parsing URL (%v)", err)
 	}
 
 	ln, err := newStoppableListener(urlAddress.Host, rn.httpstopc)
 	if err != nil {
-		log.Fatalf("raftexample: Failed to listen rafthttp (%v)", err)
+		log.Fatalf("matrixbase: Failed to listen rafthttp (%v)", err)
 	}
 
 	err = (&http.Server{Handler: rn.transport.Handler()}).Serve(ln)
 	select {
 	case <-rn.httpstopc:
 	default:
-		log.Fatalf("raftexample: Failed to serve rafthttp (%v)", err)
+		log.Fatalf("matrixbase: Failed to serve rafthttp (%v)", err)
 	}
 	close(rn.httpdonec)
 }

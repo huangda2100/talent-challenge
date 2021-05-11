@@ -23,7 +23,7 @@ type StoreCfg struct {
 	DataPath  string `toml:"dataPath"`
 	ClusterIp string
 	Join      bool
-	Id        int
+	Id        int `toml:"id"`
 }
 
 // MustParseCfg parse cfg, exit if has any error

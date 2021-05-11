@@ -79,21 +79,24 @@ func NewRaftNode(id int, peers []string, join bool, proposeC <-chan string,
 		snapshotterReady: make(chan *snap.Snapshotter, 1),
 		// rest of structure populated after WAL replay
 	}
+
+	log.Println("NewRaftNode")
 	go rc.startRaft()
 	return commitC, errorC, rc.snapshotterReady
 }
 
 func(rn *raftNode) startRaft() {
+	log.Println("startRaft1")
 	if !fileutil.Exist(rn.snapshotDir) {
 		if err := os.Mkdir(rn.snapshotDir, 0750); err != nil {
 			log.Fatalf("matrixbase: cannot create dir for snapshot (%v)", err)
 		}
 	}
-
+	log.Println("startRaft2")
 	rn.snapshotter = snap.New(zap.NewExample(), rn.snapshotDir)
 	rn.snapshotterReady <- rn.snapshotter
 
-	oldWal := wal.Exist(rn.walDir)
+	//oldWal := wal.Exist(rn.walDir)
 	rn.wal = rn.replayWAL()
 
 	rpeers := make([]raft.Peer, len(rn.peers))
@@ -109,17 +112,19 @@ func(rn *raftNode) startRaft() {
 		MaxInflightMsgs:           256,
 		MaxUncommittedEntriesSize: 1 << 30,
 	}
+	rn.node = raft.StartNode(conf, rpeers)
 
-	if oldWal {
-		rn.node = raft.RestartNode(conf)
-	} else {
-		startPeers := rpeers
-		if rn.join {
-			startPeers = nil
-		}
-
-		rn.node = raft.StartNode(conf, startPeers)
-	}
+	//if oldWal {
+	//	log.Println("RestartNode")
+	//	rn.node = raft.RestartNode(conf)
+	//} else {
+	//	startPeers := rpeers
+	//	if rn.join {
+	//		startPeers = nil
+	//	}
+	//	log.Println("raft.StartNode")
+	//	rn.node = raft.StartNode(conf, startPeers)
+	//}
 
 	rn.transport = &rafthttp.Transport{
 		Logger:      zap.NewExample(),
@@ -207,7 +212,7 @@ func (rn *raftNode) serveRaft() {
 	if err != nil {
 		log.Fatalf("matrixbase: Failed parsing URL (%v)", err)
 	}
-
+	log.Println("serveRaft urlAddress:", urlAddress)
 	ln, err := newStoppableListener(urlAddress.Host, rn.httpstopc)
 	if err != nil {
 		log.Fatalf("matrixbase: Failed to listen rafthttp (%v)", err)
@@ -267,7 +272,9 @@ func (rc *raftNode) serveChannels() {
 		case rd := <- rc.node.Ready():
 			//when will data be written into this chan
 			rc.wal.Save(rd.HardState,rd.Entries)
+			log.Println("save wal")
 			if !raft.IsEmptySnap(rd.Snapshot) {
+				log.Println("saveSnap")
 				rc.saveSnap(rd.Snapshot)
 				rc.raftStorage.ApplySnapshot(rd.Snapshot)
 				rc.publishSnapshot(rd.Snapshot)

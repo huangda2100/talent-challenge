@@ -24,6 +24,9 @@ func NewStore(cfg cfg.StoreCfg) (Store, error) {
 		return newMemoryStore()
 	}
 
+	cfg.ClusterIp = "http://127.0.0.1:7001,http://127.0.0.1:7002,http://127.0.0.1:7003"
+	cfg.Join = false
+
 	proposeChan := make(chan string)
 	defer close(proposeChan)
 	confChangeChan := make(chan raftpb.ConfChange)

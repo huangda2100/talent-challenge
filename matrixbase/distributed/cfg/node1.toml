@@ -2,5 +2,6 @@
 addr = "node1:8080"
 
 [store]
-memory = true
+memory = false
 dataPath = "/tmp"
+id = 1

@@ -1,5 +1,5 @@
 [api]
-addr = "node3:8080"
+addr = ":8080"
 
 [store]
 memory = false

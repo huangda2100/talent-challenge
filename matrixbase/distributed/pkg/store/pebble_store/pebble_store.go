@@ -112,6 +112,13 @@ func (ps *PebbleStorage) Set(key []byte, value []byte) error {
 	defer ps.mu.RUnlock()
 	ps.db.Set(key, value, pebble.Sync)
 
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(kv{string(key), string(value)}); err != nil {
+		log.Fatal(err)
+	}
+
+	ps.proposeChan <- buf.String()
+
 	return nil
 }
 

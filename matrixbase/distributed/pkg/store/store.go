@@ -24,13 +24,13 @@ func NewStore(cfg cfg.StoreCfg) (Store, error) {
 		return newMemoryStore()
 	}
 
-	cfg.ClusterIp = "http://127.0.0.1:7001,http://127.0.0.1:7002,http://127.0.0.1:7003"
+	cfg.ClusterIp = "http://172.19.1.1:7001,http://172.19.1.2:7002,http://172.19.1.3:7003"
 	cfg.Join = false
 
 	proposeChan := make(chan string)
-	defer close(proposeChan)
+	//defer close(proposeChan)
 	confChangeChan := make(chan raftpb.ConfChange)
-	defer close(confChangeChan)
+	//defer close(confChangeChan)
 
 	var pebbleStore pebble_store.PebbleStorage
 	getSnapshot := func() ([]byte, error) {return pebbleStore.GetSnapshot()}

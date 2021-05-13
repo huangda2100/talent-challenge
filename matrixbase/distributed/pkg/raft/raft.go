@@ -248,6 +248,7 @@ func (rc *raftNode) serveChannels() {
 				if !ok {
 					rc.proposeChan = nil
 				} else {
+					log.Println("propose msg")
 					rc.node.Propose(context.TODO(), []byte(propose))
 				}
 			case cc, ok := <-rc.confChangeChan:
@@ -272,7 +273,7 @@ func (rc *raftNode) serveChannels() {
 		case rd := <- rc.node.Ready():
 			//when will data be written into this chan
 			rc.wal.Save(rd.HardState,rd.Entries)
-			log.Println("save wal")
+			//log.Println("save wal")
 			if !raft.IsEmptySnap(rd.Snapshot) {
 				log.Println("saveSnap")
 				rc.saveSnap(rd.Snapshot)

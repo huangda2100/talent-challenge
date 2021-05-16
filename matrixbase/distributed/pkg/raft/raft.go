@@ -55,7 +55,7 @@ type raftNode struct {
 var defaultSnapshotCount uint64 = 10000
 
 func NewRaftNode(id int, peers []string, join bool, proposeC <-chan string,
-	confChangeC <-chan raftpb.ConfChange, getSnapshot func() ([]byte, error)) (<-chan *string, <-chan error, <-chan *snap.Snapshotter) {
+	confChangeC <-chan raftpb.ConfChange, snapshotter chan *snap.Snapshotter, getSnapshot func() ([]byte, error)) (<-chan *string, <-chan error) {
 
 	commitC := make(chan *string)
 	errorC := make(chan error)
@@ -76,13 +76,13 @@ func NewRaftNode(id int, peers []string, join bool, proposeC <-chan string,
 		httpstopc:      make(chan struct{}),
 		httpdonec:      make(chan struct{}),
 
-		snapshotterReady: make(chan *snap.Snapshotter, 1),
+		snapshotterReady: snapshotter,
 		// rest of structure populated after WAL replay
 	}
 
 	log.Println("NewRaftNode")
 	go rc.startRaft()
-	return commitC, errorC, rc.snapshotterReady
+	return commitC, errorC
 }
 
 func(rn *raftNode) startRaft() {

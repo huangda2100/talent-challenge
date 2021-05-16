@@ -3,6 +3,9 @@
 github.com/BurntSushi/toml
 # github.com/DataDog/zstd v1.4.5
 github.com/DataDog/zstd
+# github.com/Jeffail/tunny v0.0.0-20210126202424-1b37d6cb867a
+## explicit
+github.com/Jeffail/tunny
 # github.com/andybalholm/brotli v1.0.0
 github.com/andybalholm/brotli
 # github.com/beorn7/perks v1.0.1

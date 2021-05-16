@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/gob"
 	"encoding/json"
+	"fmt"
 	"github.com/cockroachdb/pebble"
-	"github.com/cockroachdb/pebble/vfs"
 	"go.etcd.io/etcd/server/v3/etcdserver/api/snap"
 	"log"
 	"sync"
@@ -23,23 +23,30 @@ type kv struct {
 	Val string
 }
 
-func NewPebbleStorage(snapshot *snap.Snapshotter, proposeChan chan<- string, commitChan <-chan *string, errorChan <-chan error) *PebbleStorage {
-	db, err := pebble.Open("", &pebble.Options{FS: vfs.NewMem()})
+var db *pebble.DB
+var err error
+func init() {
+	db, err = pebble.Open("pebble_store", &pebble.Options{})
 	if err != nil {
 		log.Fatal(err)
 	}
+}
 
+func NewPebbleStorage(snapshot *snap.Snapshotter, proposeChan chan<- string) *PebbleStorage {
 	ps := &PebbleStorage{
 		db: db,
 		proposeChan: proposeChan,
 		snapshot: snapshot,
 	}
 
-	// replay log into key-value map, the reason is:?
-	ps.readCommits(commitChan, errorChan)
-	// read commits from raft into kvStore map until error
-	go ps.readCommits(commitChan, errorChan)
 	return ps
+}
+
+func (s *PebbleStorage) StartReadCommit(commitChan <-chan *string, errorChan <-chan error) {
+	// replay log into key-value map, the reason is:?
+	s.readCommits(commitChan, errorChan)
+	// read commits from raft into kvStore map until error
+	go s.readCommits(commitChan, errorChan)
 }
 
 func (s *PebbleStorage) readCommits(commitC <-chan *string, errorC <-chan error) {
@@ -126,6 +133,9 @@ func (ps *PebbleStorage) Get(key []byte) ([]byte, error) {
 	ps.mu.RLock()
 	defer ps.mu.RUnlock()
 	v, closer, err := ps.db.Get(key)
+	if err != nil {
+		fmt.Println("ps get err:", err)
+	}
 	closer.Close()
 
 	return v, err

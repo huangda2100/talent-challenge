@@ -2,70 +2,86 @@ package main
 
 import (
 	"fmt"
+	"github.com/Jeffail/tunny"
 	"io/ioutil"
 	"net/http"
+	"os"
+	"os/signal"
+	"runtime"
 	"strings"
 	"sync"
-	"time"
+	"syscall"
 )
 
 func main() {
-	t := time.NewTimer(100*time.Second)
-	//t := time.NewTimer(5*time.Minute)
-	i := 0
-Loop:
+	shutdown := make(chan struct{})
+	signals := make(chan os.Signal)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		for sign := range signals {
+			if sign == os.Interrupt || sign == syscall.SIGTERM {
+				close(shutdown)
+			}
+		}
+	}()
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
+	numCPUs := runtime.NumCPU()
+	pool := tunny.NewFunc(numCPUs, func(i interface{}) interface{} {
+		url := "http://127.0.0.1:8081/kv"
+		method := "POST"
+		k := "dsfeqf" + fmt.Sprintf("%d",i)
+		v := "ytuytyr" + fmt.Sprintf("%d",i)
+
+		payload := strings.NewReader(`{
+						"key":"`+k+`",
+						"value":"`+v+`"
+					}`)
+
+		client := &http.Client {
+		}
+		req, err := http.NewRequest(method, url, payload)
+		if err != nil {
+			fmt.Println("new req:",err)
+		}
+		req.Header.Add("Content-Type", "application/json")
+
+		res, err := client.Do(req)
+		if err != nil {
+			fmt.Println("req err:", err)
+		}
+		defer res.Body.Close()
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println("goroutine:" + fmt.Sprintf("%d",i) + string(body))
+
+		return nil
+	})
+	defer pool.Close()
+
+
+	go func(p *tunny.Pool) {
+		defer wg.Done()
+		writeData(shutdown,p)
+	}(pool)
+	wg.Wait()
+	fmt.Println("done")
+}
+
+func writeData(shutdown chan struct{},p *tunny.Pool) {
 	for {
 		select {
-		case <- t.C:
-			break Loop
+		case <-shutdown:
+			fmt.Println("stop work")
+			return
 		default:
-			i++
-			for {
-				WriteData()
+			for i:=0; i < 1000; i++ {
+				go p.Process(i)
 			}
 		}
 	}
-}
-
-func WriteData(){
-	wg := &sync.WaitGroup{}
-
-	for i := 1; i <= 1000; i++ {
-		wg.Add(1)
-		go func(i int, group *sync.WaitGroup) {
-			url := "http://127.0.0.1:8081/kv"
-			method := "POST"
-			k := "dsfeqf" + fmt.Sprintf("%d",i)
-			v := "ytuytyr" + fmt.Sprintf("%d",i)
-
-			payload := strings.NewReader(`{
-				"key":"`+k+`",
-				"value":"`+v+`"
-			}`)
-
-			client := &http.Client {
-			}
-			req, err := http.NewRequest(method, url, payload)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-			req.Header.Add("Content-Type", "application/json")
-
-			res, err := client.Do(req)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-			defer res.Body.Close()
-			body, err := ioutil.ReadAll(res.Body)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-			fmt.Println("goroutine:" + fmt.Sprintf("%d",i) + string(body))
-			group.Done()
-		}(i,wg)
-	}
-	wg.Wait()
 }

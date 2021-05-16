@@ -5,6 +5,7 @@ import (
 	"github.com/matrixorigin/talent-challenge/matrixbase/distributed/pkg/raft"
 	"github.com/matrixorigin/talent-challenge/matrixbase/distributed/pkg/store/pebble_store"
 	"go.etcd.io/etcd/raft/v3/raftpb"
+	"go.etcd.io/etcd/server/v3/etcdserver/api/snap"
 	"strings"
 )
 
@@ -18,7 +19,6 @@ type Store interface {
 	Delete(key []byte) error
 }
 
-// NewStore create the raft store
 func NewStore(cfg cfg.StoreCfg) (Store, error) {
 	if cfg.Memory {
 		return newMemoryStore()
@@ -30,13 +30,14 @@ func NewStore(cfg cfg.StoreCfg) (Store, error) {
 	proposeChan := make(chan string)
 	//defer close(proposeChan)
 	confChangeChan := make(chan raftpb.ConfChange)
+	snapshotReady := make(chan *snap.Snapshotter, 1)
 	//defer close(confChangeChan)
 
-	var pebbleStore pebble_store.PebbleStorage
-	getSnapshot := func() ([]byte, error) {return pebbleStore.GetSnapshot()}
-	commitChan, errorChan, snapshotReady := raft.NewRaftNode(cfg.Id, strings.Split(cfg.ClusterIp, ","), cfg.Join, proposeChan, confChangeChan, getSnapshot)
-
-	ps := pebble_store.NewPebbleStorage(<-snapshotReady,proposeChan,commitChan,errorChan)
+	var ps *pebble_store.PebbleStorage
+	getSnapshot := func() ([]byte, error) {return ps.GetSnapshot()}
+	commitChan, errorChan := raft.NewRaftNode(cfg.Id, strings.Split(cfg.ClusterIp, ","), cfg.Join, proposeChan, confChangeChan, snapshotReady, getSnapshot)
+	ps = pebble_store.NewPebbleStorage(<-snapshotReady,proposeChan)
+	ps.StartReadCommit(commitChan, errorChan)
 
 	// TODO: need to implement
 	return ps, nil

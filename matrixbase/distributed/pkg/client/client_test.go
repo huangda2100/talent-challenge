@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,6 +27,18 @@ func TestGet(t *testing.T) {
 	v, err := c.Get(key)
 	assert.NoError(t, err, "TestGet failed")
 	assert.Equal(t, string(value), string(v), "TestGet failed")
+}
+
+func TestGetAll(t *testing.T) {
+	c := New("127.0.0.1:8083")
+	for i:=0; i < 1000; i++ {
+		k := []byte("testkey" + fmt.Sprintf("%d",i))
+		v := "testvalue" + fmt.Sprintf("%d",i)
+		val, err := c.Get(k)
+		assert.NoError(t, err, "TestGet failed")
+
+		assert.Equal(t, string(v), string(val), "TestGet failed, key:", string(k), "value:", string(val))
+	}
 }
 
 func TestDelete(t *testing.T) {

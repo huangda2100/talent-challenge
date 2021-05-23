@@ -32,8 +32,8 @@ func main() {
 	pool := tunny.NewFunc(numCPUs, func(i interface{}) interface{} {
 		url := "http://127.0.0.1:8081/kv"
 		method := "POST"
-		k := "dsfeqf" + fmt.Sprintf("%d",i)
-		v := "ytuytyr" + fmt.Sprintf("%d",i)
+		k := "testkey" + fmt.Sprintf("%d",i)
+		v := "testvalue" + fmt.Sprintf("%d",i)
 
 		payload := strings.NewReader(`{
 						"key":"`+k+`",
@@ -57,7 +57,7 @@ func main() {
 		if err != nil {
 			fmt.Println(err)
 		}
-		fmt.Println("goroutine:" + fmt.Sprintf("%d",i) + string(body))
+		fmt.Println("goroutine:" + fmt.Sprintf("%d",i) + " k:" + k + " v:" + v + " result:" +string(body))
 
 		return nil
 	})

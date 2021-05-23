@@ -20,9 +20,9 @@ type Store interface {
 }
 
 func NewStore(cfg cfg.StoreCfg) (Store, error) {
-	if cfg.Memory {
-		return newMemoryStore()
-	}
+	//if cfg.Memory {
+	//	return newMemoryStore()
+	//}
 
 	cfg.ClusterIp = "http://172.19.1.1:7001,http://172.19.1.2:7002,http://172.19.1.3:7003"
 	cfg.Join = false

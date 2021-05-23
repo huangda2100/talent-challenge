@@ -15,10 +15,10 @@
 ### 2. 如何测试
 收到答题者的作品时，我们会按照以下的流程进行测试
 
-* 启动2个节点
-* 使用一个客户端以 1000/s 的速率持续的写入KV数据5分钟，并且记录服务端返回成功写入的数据
-* 数据写入2分钟后，启动第三个节点
-* 滚动重启3个节点
-* 停止写入客户端
-* 检查数据是否正确
+* 启动2个节点 (执行两条命令： 1:/bin/bash build.sh x; 2:TAG=x docker-compose up)
+* 使用一个客户端以 1000/s 的速率持续的写入KV数据5分钟，并且记录服务端返回成功写入的数据 (执行：go run cmd/checker/main.go 结果数据会在终端显示，如：goroutine:50 k:testkey50 v:testvalue50 result:{"code":0,"data":"OK"})
+* 数据写入2分钟后，启动第三个节点(执行：docker run --name kv-3 -v /Users/huangda/project/talent-challenge/matrixbase/distributed/cfg/node3.toml:/etc/cfg.toml --network distributed_mynet1 --ip 172.19.1.3 -p 8083:8080 kv:x)
+* 滚动重启3个节点 (执行：docker restart kv-3)
+* 停止写入客户端 (输入中断指令 control + c)
+* 检查数据是否正确 (进入pkg/client目录，执行：go test --v --test.run TestGetAll)
 

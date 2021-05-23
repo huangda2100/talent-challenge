@@ -77,7 +77,6 @@ func NewRaftNode(id int, peers []string, join bool, proposeC <-chan string,
 		httpdonec:      make(chan struct{}),
 
 		snapshotterReady: snapshotter,
-		// rest of structure populated after WAL replay
 	}
 
 	log.Println("NewRaftNode")
@@ -113,18 +112,6 @@ func(rn *raftNode) startRaft() {
 		MaxUncommittedEntriesSize: 1 << 30,
 	}
 	rn.node = raft.StartNode(conf, rpeers)
-
-	//if oldWal {
-	//	log.Println("RestartNode")
-	//	rn.node = raft.RestartNode(conf)
-	//} else {
-	//	startPeers := rpeers
-	//	if rn.join {
-	//		startPeers = nil
-	//	}
-	//	log.Println("raft.StartNode")
-	//	rn.node = raft.StartNode(conf, startPeers)
-	//}
 
 	rn.transport = &rafthttp.Transport{
 		Logger:      zap.NewExample(),
@@ -402,9 +389,6 @@ func (rc *raftNode) maybeTriggerSnapshot() {
 }
 
 func (rn *raftNode) saveSnap(snap raftpb.Snapshot) error {
-	// must save the snapshot index to the WAL before saving the
-	// snapshot to maintain the invariant that we only Open the
-	// wal at previously-saved snapshot indexes. But why?
 	walSnap := walpb.Snapshot{
 		Index: snap.Metadata.Index,
 		Term:  snap.Metadata.Term,
